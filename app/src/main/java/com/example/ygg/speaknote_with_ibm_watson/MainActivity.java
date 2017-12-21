@@ -8,6 +8,7 @@ import android.support.v7.widget.RecyclerView;
 import android.view.View;
 import android.widget.CompoundButton;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -34,6 +35,7 @@ public class MainActivity extends AppCompatActivity {
     TextView note;
     Switch record;
     RecyclerView recyclerView;
+    ProgressBar progressBar;
 
     SpeechToText speechToText;
     MicrophoneHelper microphoneHelper;
@@ -55,11 +57,11 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-//        note = (TextView)findViewById(R.id.note);
-        record = (Switch)findViewById(R.id.record);
+        record = findViewById(R.id.record);
+        recyclerView = findViewById(R.id.recyclerView);
+        progressBar = findViewById(R.id.progressBar);
 
-
-        recyclerView = (RecyclerView) findViewById(R.id.recyclerView);
+        progressBar.setVisibility(View.INVISIBLE);
 
         //définit l'agencement des cellules, ici de façon verticale, comme une ListView
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
@@ -75,7 +77,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
 
-                if(isChecked && !locked) { RecordStream(); }
+                if(isChecked && !get_locked()) { RecordStream(); }
                 else { EndRecord(); }
             }
         });
@@ -107,7 +109,7 @@ public class MainActivity extends AppCompatActivity {
         // Audio RECORD
     private Boolean RecordStream() {
 
-        locked = true;
+        set_locked(true);
 
         speechToText = initSpeechToTextService();
 
@@ -147,6 +149,8 @@ public class MainActivity extends AppCompatActivity {
                     });
                 }
                 catch (Exception e) {
+
+                    set_locked(false);
                     showError(e);
                 }
             }
@@ -217,7 +221,13 @@ public class MainActivity extends AppCompatActivity {
                     showError(e);
                 }
                 finally {
-                    locked = false;
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+
+                            set_locked(false);
+                        }
+                    });
                 }
             }
         }).start();
@@ -235,6 +245,19 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
+
+
+
+
+    // GET | SET
+
+    public boolean get_locked() { return locked; }
+    public void set_locked(boolean value) {
+
+        this.locked = value;
+        progressBar.setVisibility( value ? View.VISIBLE : View.INVISIBLE);
+    }
+
 
 }
 
