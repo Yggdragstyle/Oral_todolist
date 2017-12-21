@@ -46,6 +46,8 @@ public class MainActivity extends AppCompatActivity {
     List<Note> notes = new ArrayList<Note>();
     MyAdapter notesAdaptater;
 
+    SharedPreference sharedPreference = new SharedPreference();
+
     boolean locked = false;
 
 
@@ -60,6 +62,9 @@ public class MainActivity extends AppCompatActivity {
         record = findViewById(R.id.record);
         recyclerView = findViewById(R.id.recyclerView);
         progressBar = findViewById(R.id.progressBar);
+
+        // récupère les notes depuis le SharedPreference
+        notes = sharedPreference.getNotes(getApplicationContext());
 
         progressBar.setVisibility(View.INVISIBLE);
 
@@ -186,7 +191,9 @@ public class MainActivity extends AppCompatActivity {
                                 String text = speechResults.get(0).getAlternatives().get(0).getTranscript();
 
                                 // ajoute une nouvelle note
-                                notes.add(new Note(text));
+                                Note note = new Note(text);
+                                notes.add(note);
+                                sharedPreference.addNote(getApplicationContext(), note);
                                 notesAdaptater.notifyDataSetChanged();
 
                                 showError( new Exception(text) );

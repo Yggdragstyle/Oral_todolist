@@ -28,12 +28,12 @@ public class MyAdapter extends RecyclerView.Adapter<MyViewHolder> {
     //c'est ici que nous allons remplir notre cellule avec le texte/image de chaque MyObjects
     @Override
     public void onBindViewHolder(MyViewHolder myViewHolder, int position) {
-        Note myObject = notes.get(position);
+        Note myObject = this.notes.get(position);
         myViewHolder.bind(myObject);
     }
 
     @Override
     public int getItemCount() {
-        return notes.size();
+        return this.notes.size();
     }
 }
