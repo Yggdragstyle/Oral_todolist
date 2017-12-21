@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#3F51B5</color>
-    <color name="colorPrimaryDark">#303F9F</color>
-    <color name="colorAccent">#FF4081</color>
-    <color name="notes">#de6210</color>
-    <color name="recordON">#73f440</color>
+    <color name="colorPrimary">#00ff6f</color>
+    <color name="colorPrimaryDark">#1b6b3e</color>
+    <color name="colorAccent">#e2ff40</color>
+    <color name="colorSecondary">#f9135f</color>
+    <color name="colorSecondaryDark">#9f0035</color>
+    <color name="colorThirdary">#2276fc</color>
+    <color name="colorThirdaryDark">#082d68</color>
+    <color name="light">#f2edd1</color>
+    <color name="dark">#1e1e1e</color>
 </resources>

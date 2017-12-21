@@ -3,7 +3,11 @@ package com.example.ygg.speaknote_with_ibm_watson;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.view.View;
 import android.widget.CompoundButton;
+import android.widget.ImageView;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -14,10 +18,12 @@ import com.ibm.watson.developer_cloud.android.library.audio.utils.ContentType;
 import com.ibm.watson.developer_cloud.http.HttpMediaType;
 import com.ibm.watson.developer_cloud.speech_to_text.v1.SpeechToText;
 import com.ibm.watson.developer_cloud.speech_to_text.v1.model.RecognizeOptions;
+import com.ibm.watson.developer_cloud.speech_to_text.v1.model.SpeechAlternative;
 import com.ibm.watson.developer_cloud.speech_to_text.v1.model.SpeechResults;
 import com.ibm.watson.developer_cloud.speech_to_text.v1.model.Transcript;
 import com.ibm.watson.developer_cloud.speech_to_text.v1.websocket.BaseRecognizeCallback;
 
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -27,15 +33,21 @@ public class MainActivity extends AppCompatActivity {
     // PROPERTIES
     TextView note;
     Switch record;
-    SpeechToText speechToText;
+    RecyclerView recyclerView;
 
+    SpeechToText speechToText;
     MicrophoneHelper microphoneHelper;
-    MicrophoneInputStream myInputStream;
     MicrophoneInputStream myOggStream;
     RecognizeOptions options;
     List<Transcript> speechResults;
 
-    boolean stopped = true;
+    List<Note> notes = new ArrayList<Note>();
+    MyAdapter notesAdaptater;
+
+    boolean locked = false;
+
+
+
 
         // ON RUN...
     @Override
@@ -43,15 +55,28 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        note = (TextView)findViewById(R.id.note);
+//        note = (TextView)findViewById(R.id.note);
         record = (Switch)findViewById(R.id.record);
 
+
+        recyclerView = (RecyclerView) findViewById(R.id.recyclerView);
+
+        //définit l'agencement des cellules, ici de façon verticale, comme une ListView
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+
+        //puis créer un MyAdapter, lui fournir notre liste de Notes.
+        //cet adapter servira à remplir notre recyclerview
+        notesAdaptater = new MyAdapter(notes);
+        recyclerView.setAdapter(notesAdaptater);
+
+
+        // Lorsqu'ont change l'état du bouton RECORD
         record.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
 
-                if(isChecked) { RecordStream(); }
-                else { microphoneHelper.closeInputStream(); }
+                if(isChecked && !locked) { RecordStream(); }
+                else { EndRecord(); }
             }
         });
 
@@ -82,27 +107,16 @@ public class MainActivity extends AppCompatActivity {
         // Audio RECORD
     private Boolean RecordStream() {
 
+        locked = true;
+
         speechToText = initSpeechToTextService();
 
-//        options = new RecognizeOptions.Builder()
-////                .continuous(true)
-//                .interimResults(true)
-//                //.inactivityTimeout(5) // use this to stop listening when the speaker pauses, i.e. for 5s
-//                .contentType(HttpMediaType.AUDIO_RAW + "; rate=" + "1600")
-//                .build();
-
-
-
-        //                                      .continuous(true)
         options = new RecognizeOptions.Builder().contentType(ContentType.OPUS.toString())
+//                .keywords(new String[]{"banane", "ananas", "cerise", "pomme"})
                 .model("fr-FR_BroadbandModel").interimResults(true).inactivityTimeout(2000).build();
 
         microphoneHelper = new MicrophoneHelper(this);
 
-        //        // record PCM data without encoding
-//        myInputStream = microphoneHelper.getInputStream(false);
-
-        // record PCM data and encode it with the ogg codec
         myOggStream = microphoneHelper.getInputStream(true);
 
 
@@ -114,27 +128,7 @@ public class MainActivity extends AppCompatActivity {
                     speechToText.recognizeUsingWebSocket(myOggStream, options, new BaseRecognizeCallback() {
 
                         @Override
-                        public void onTranscription(SpeechResults results) {
-
-
-                            speechResults = results.getResults();
-
-                            if (speechResults != null && !speechResults.isEmpty()) {
-
-                                runOnUiThread(new Runnable() {
-                                    @Override
-                                    public void run() {
-
-                                        String text = speechResults.get(0).getAlternatives().get(0).getTranscript();
-
-                                        showError( new Exception(text) );
-
-                                        System.out.println(text + "@Ygg_TAG");
-                                    }
-                                });
-                            }
-
-                        }
+                        public void onTranscription(SpeechResults results) { speechResults = results.getResults(); }
 
                         @Override
                         public void onError(Exception e) { showError(e); }
@@ -166,13 +160,77 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
+    private void EndRecord() {
+
+        // close stream
+        microphoneHelper.closeInputStream();
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+
+                    Thread.sleep(2000);
+
+
+                    if (speechResults != null && !speechResults.isEmpty()) {
+
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+
+                                String text = speechResults.get(0).getAlternatives().get(0).getTranscript();
+
+                                // ajoute une nouvelle note
+                                notes.add(new Note(text));
+                                notesAdaptater.notifyDataSetChanged();
+
+                                showError( new Exception(text) );
+
+                                System.out.println(text + "@Ygg_TAG");
+                            }
+                        });
+
+
+//                        runOnUiThread(new Runnable() {
+//                            @Override
+//                            public void run() {
+//
+//                            }
+//                        });
+//
+//                        String text = ">>>   ";
+//
+//                        for (Transcript transcript : speechResults){
+//                            for (SpeechAlternative speechAlternative : transcript.getAlternatives()) {
+//
+//                                text += " <|\n|> " + speechAlternative.getTranscript();
+//
+////                                        Thread.sleep(200);
+//                            }
+//                        }
+//
+//                        showError(new Exception(text));
+                    }
+
+                } catch (Exception e) {
+                    showError(e);
+                }
+                finally {
+                    locked = false;
+                }
+            }
+        }).start();
+    }
+
 
         // if ERROR
     private void showError(final Exception e) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                Toast.makeText(MainActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
+                System.out.println(e.getMessage() + "@Ygg_TAG");
                 e.printStackTrace();
             }
         });
