@@ -1,0 +1,5 @@
+<root>
+    <item name='com.ibm.watson.developer_cloud.android.library.audio.utils.SpeechConfiguration'>
+        <annotation name='java.lang.Deprecated' />
+    </item>
+</root>
